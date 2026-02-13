@@ -6,22 +6,12 @@ def run_semantic():
 
     while True:
         line = input(">> ").strip()
-
-        # Stop condition
         if line.lower() == "exit":
             break
-
-        # Ignore empty input
         if not line:
             continue
-
-        # Remove semicolon if present
         if line.endswith(";"):
             line = line[:-1]
-
-        # -------------------------
-        # Handle Declaration
-        # -------------------------
         if line.startswith("int"):
             parts = line.split()
 
@@ -38,10 +28,6 @@ def run_semantic():
                         print(f"Declared: {var}")
             else:
                 print("Invalid declaration")
-
-        # -------------------------
-        # Handle Assignment
-        # -------------------------
         elif "=" in line:
             lhs, rhs = line.split("=", 1)
             lhs = lhs.strip()
@@ -52,15 +38,11 @@ def run_semantic():
             else:
                 print(f"OK: {line}")
 
-        # -------------------------
-        # Invalid Statement
-        # -------------------------
         else:
             print("Invalid statement")
 
     print("\nFinal Symbol Table:", symbol_table)
 
-
-# Run the program
 if __name__ == "__main__":
     run_semantic()
+
