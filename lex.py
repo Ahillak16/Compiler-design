@@ -1,7 +1,7 @@
 import re
 
 # Step 1: Define token categories
-KEYWORDS = {"int", "float", "if", "else", "while", "return"}
+KEYWORDS = {"int", "float", "if", "else", "while", "return","for","switch","elif"}
 OPERATORS = {"+", "-", "*", "/", "=", ">", "<"}
 DELIMITERS = {";", ",", "(", ")", "{", "}"}
 
@@ -33,4 +33,5 @@ for token in tokens:
     elif token.isdigit():
         print(f"{token:<10} → NUMBER")
     else:
+
         print(f"{token:<10} → IDENTIFIER")
