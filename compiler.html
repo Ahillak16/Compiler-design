@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lexical Analyzer</title>
+    <style>
+        :root { 
+            --primary: #2563eb; 
+            --bg: #f8fafc; 
+            --text: #1e293b; 
+            --border: #e2e8f0;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            padding: 20px; 
+            margin: 0;
+        }
+        
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+        }
+        
+        h1 { margin-bottom: 5px; color: var(--text); }
+        p { color: #64748b; margin-top: 0; margin-bottom: 20px; }
+        
+        textarea { 
+            width: 100%; 
+            min-height: 150px; /* Starts at a semi-size */
+            padding: 15px; 
+            border-radius: 8px; 
+            border: 2px solid var(--border); 
+            font-family: 'Consolas', monospace; 
+            font-size: 14px; 
+            margin-bottom: 15px; 
+            box-sizing: border-box; 
+            resize: none; /* Disabled manual drag because it auto-adjusts */
+            overflow: hidden; /* Hides the scrollbar for smooth expansion */
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        textarea:focus { border-color: var(--primary); }
+        
+        button { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 12px 25px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 16px;
+            transition: 0.3s; 
+        }
+        button:hover { background: #1d4ed8; }
+        
+        .phase-card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
+            border-top: 4px solid var(--primary); 
+            margin-top: 25px; 
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        h3 { margin: 0; color: var(--primary); }
+        #tokenCount { font-weight: bold; color: #64748b; background: #f1f5f9; padding: 4px 10px; border-radius: 20px; font-size: 13px; }
+        
+        /* Vertical List Styling */
+        .token-item { 
+            background: #f8fafc; 
+            padding: 10px 15px; 
+            margin-bottom: 6px; 
+            border-radius: 6px; 
+            font-family: 'Consolas', monospace; 
+            font-size: 14px;
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            display: flex;
+            align-items: center;
+        }
+        
+        .token-item:hover { background: #f1f5f9; }
+        
+        .t-type { 
+            color: var(--primary); 
+            font-weight: bold; 
+            width: 140px; 
+            flex-shrink: 0;
+            text-transform: uppercase;
+        }
+        
+        .t-val {
+            color: #0f172a;
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        /* Color variations for specific types */
+        .type-KEYWORD { border-left-color: #ec4899; }
+        .type-KEYWORD .t-type { color: #ec4899; }
+        
+        .type-NUMBER { border-left-color: #d97706; }
+        .type-NUMBER .t-type { color: #d97706; }
+        
+        .type-STRING { border-left-color: #10b981; }
+        .type-STRING .t-type { color: #10b981; }
+        
+        .type-COMMENT { border-left-color: #94a3b8; }
+        .type-COMMENT .t-type { color: #94a3b8; }
+        .type-COMMENT .t-val { font-style: italic; color: #64748b; }
+
+        .type-UNKNOWN { border-left-color: #ef4444; background: #fef2f2; }
+        .type-UNKNOWN .t-type { color: #ef4444; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Lexical Analyzer </h1>
+    
+    <textarea id="codeInput" spellcheck="false">#include <stdio.h>
+
+int main() {
+    int num1, num2, sum;
+    int i = 0;
+
+    // Using a for loop to run the addition 3 times
+    for (i = 1; i <= 3; i++) {
+        printf("Enter first number: ");
+        scanf("%d", &num1);
+        
+        printf("Enter second number: ");
+        scanf("%d", &num2);
+        
+        if (num1 == 0 && num2 == 0) {
+            printf("Loop stopped.\n");
+            break;
+        }
+        
+        sum = num1 + num2;
+        printf("Sum = %d\n\n", sum);
+    }
+
+    return 0;
+}</textarea>
+    
+    <button onclick="runLexicalAnalysis()">Scan One-by-One</button>
+
+    <div class="phase-card">
+        <div class="card-header">
+            <h3>Token Sequence</h3>
+            <span id="tokenCount">0 Tokens parsed</span>
+        </div>
+        <div id="lexerOutput">
+            <div style="color: #94a3b8; font-style: italic; padding: 10px 0;">Click "Scan One-by-One" to generate the token stream.</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- AUTO-RESIZE TEXTAREA LOGIC ---
+const textarea = document.getElementById('codeInput');
+
+function autoResize() {
+    this.style.height = 'auto'; // Reset height temporarily
+    this.style.height = this.scrollHeight + 'px'; // Set to exact content height
+}
+
+// Listen for typing/pasting
+textarea.addEventListener('input', autoResize);
+// Adjust size immediately when the page loads
+window.addEventListener('load', () => autoResize.call(textarea));
+
+
+// --- LEXICAL ANALYZER LOGIC ---
+function runLexicalAnalysis() {
+    const input = document.getElementById('codeInput').value;
+    
+    // --- PROFESSIONAL LEXICAL GRAMMAR ---
+    const tokenSpecs = [
+        // Preprocessors (Catches #include <stdio.h> entirely)
+        ['PREPROCESSOR', /^#[^\n]*/], 
+        
+        // Comments (Catches // and /* */)
+        ['COMMENT', /^(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/],
+        
+        // Strings (Catches text inside quotes)
+        ['STRING', /^".*?"/], 
+        
+        // Exhaustive Keywords (Must end with \b to prevent matching "format" as "for")
+        ['KEYWORD', /^(int|float|double|char|void|if|else|while|for|return|break|continue|switch|case|default|struct|class|public|private)\b/],
+        
+        // Identifiers (Variables, function names)
+        ['IDENTIFIER', /^[a-zA-Z_]\w*/],
+        
+        // Numbers (Integers and floats)
+        ['NUMBER', /^\d+(\.\d+)?/],
+        
+        // Operators: GREEDY MATCHING (Checks == before =, ++ before +)
+        ['OPERATOR', /^(==|!=|<=|>=|&&|\|\||\+\+|--|[+\-*/%=<>!&|^~])/],
+        
+        // Punctuation
+        ['PUNCTUATION', /^[;{}()\,\[\]\.]/],
+        
+        // Whitespace (Ignored in output)
+        ['WHITESPACE', /^\s+/],
+
+        // Unknown / Error Catch-all
+        ['UNKNOWN', /^./]
+    ];
+
+    let tokens = [];
+    let cursor = 0;
+    let validTokenCount = 0;
+
+    // Read through the input string
+    while (cursor < input.length) {
+        let match = null;
+        for (let [type, regex] of tokenSpecs) {
+            const result = regex.exec(input.slice(cursor));
+            if (result) {
+                if (type !== 'WHITESPACE') {
+                    tokens.push({ type, value: result[0] });
+                    validTokenCount++;
+                }
+                cursor += result[0].length;
+                match = true;
+                break;
+            }
+        }
+        
+        // Safety net (should be caught by UNKNOWN, but just in case)
+        if (!match) cursor++; 
+    }
+
+    // Render HTML Output
+    const lexerDiv = document.getElementById('lexerOutput');
+    document.getElementById('tokenCount').innerText = `${validTokenCount} Tokens parsed`;
+    
+    lexerDiv.innerHTML = tokens.map(t => {
+        // Escape HTML to safely display <stdio.h>, &, etc.
+        const safeValue = t.value
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+            
+        return `
+            <div class="token-item type-${t.type}">
+                <div class="t-type">${t.type}</div>
+                <div class="t-val">${safeValue}</div>
+            </div>
+        `;
+    }).join('');
+}
+</script>
+
+</body>
+</html>
